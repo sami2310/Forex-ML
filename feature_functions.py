@@ -2,6 +2,25 @@ import pandas as pd
 import numpy as np
 
 
+def create_results(df , column, futur):
+    """
+    :param df: the dataframe that has the data
+    :param column: String : the column to compute the results on
+    :param futur: int : How much in the futur will we need to see for the result
+
+    :return: The result in an numpy array where 1 means the price moved up and 0 means it moved down
+    """
+    
+    result = np.empty((df.shape[0]))
+    result[:] = np.nan
+    for i in range(df.shape[0] - futur):
+        if (df[column][i] <= df[column][i+ futur]): # Price moved up or stood still
+            result[i] = 1
+        else: # Price moved down
+            result[i] = 0
+    return result
+
+
 # Price Averages
 def moving_averages(prices, periods):
     """
