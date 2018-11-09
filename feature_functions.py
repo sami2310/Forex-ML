@@ -27,18 +27,40 @@ def moving_averages(prices, periods):
 
     :param prices: OHLC data
     :param periods: periods for which to compute the averages
-    :return: Averages over the given periods
-            each key points to a dataframe that has the moving averages corresponding to that period
+
+    :return: Averages over the given periods in a dataframe
     """
 
-    avs = {}
+    results = pd.DataFrame(index=prices.index)
 
     for i in range(len(periods)):
-        avs[periods[i]] = pd.DataFrame(prices[['open', 'high', 'low', 'close']].rolling(periods[i]).mean())
-        avs[periods[i]].columns = ['MA' + str(periods[i]) + ' open', 'MA' + str(periods[i]) + ' high',
-                                   'MA' + str(periods[i]) + ' low', 'MA' + str(periods[i]) + ' close']
+        df = pd.DataFrame(prices[['open', 'high', 'low', 'close']].rolling(periods[i]).mean())
+        df.columns = ['MA' + str(periods[i]) + ' open', 'MA' + str(periods[i]) + ' high',
+                      'MA' + str(periods[i]) + ' low', 'MA' + str(periods[i]) + ' close']
+        results = pd.concat([results, df], axis=1)
 
-    return avs
+    return results
+
+
+# Exponential Price Averages
+def exponential_averages(prices, periods):
+    """
+
+    :param prices: OHLC data
+    :param periods: periods for which to compute the exponential moving averages
+
+    :return: Exponential moving averages over the given periods in a dataframe
+    """
+
+    results = pd.DataFrame(index=prices.index)
+
+    for i in range(len(periods)):
+        df = pd.DataFrame(prices[['open', 'high', 'low', 'close']].ewm(span=periods[i], adjust=False).mean())
+        df.columns = ['EMA' + str(periods[i]) + ' open', 'EMA' + str(periods[i]) + ' high',
+                      'EMA' + str(periods[i]) + ' low', 'EMA' + str(periods[i]) + ' close']
+        results = pd.concat([results, df], axis=1)
+
+    return results
 
 
 # Heikenashi
@@ -47,10 +69,11 @@ def heinkenashi(prices, periods):
 
     :param prices: dataframe of OHLC & volume data
     :param periods: periods for which to create the candles
-    :return: Heiken ashi OHLC candles
+    
+    :return: Heiken ashi OHLC candles in a dataframe
 
     """
-    dict = {}
+    results = pd.DataFrame(index=prices.index)
 
     HAclose = prices[['open', 'high', 'close', 'low']].sum(axis=1) / 4
 
@@ -71,7 +94,30 @@ def heinkenashi(prices, periods):
         df = pd.concat((HAopen, HAhigh, HAlow, HAclose), axis=1)
         df.columns = ['HA' + str(j) +' open', 'HA' + str(j) +' high', 'HA' + str(j) +' close', 'HA' + str(j) +' low']
 
-        dict[j] = df
+        results = pd.concat([results, df], axis=1)
   
 
-    return dict
+    return results
+
+
+# Momentum Function
+def momentum(prices, periods):
+    """
+
+    :param prices: DataFrame of OHLC data
+    :param periods: List of periods to calculate function value
+    
+    :return: momentum indicator in a dataframe
+    """
+
+    results = pd.DataFrame(index=prices.index)
+
+    for i in range(len(periods)):
+        results['MomOpen ' + str(periods[i])] = pd.DataFrame(
+            prices.open.iloc[periods[i]:] - prices.open.iloc[:-periods[i]].values,
+            index=prices.iloc[periods[i]:].index)
+        results['MomClose ' + str(periods[i])] = pd.DataFrame(
+            prices.close.iloc[periods[i]:] - prices.close.iloc[:-periods[i]].values,
+            index=prices.iloc[periods[i]:].index)
+
+    return results
