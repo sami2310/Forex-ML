@@ -238,3 +238,53 @@ def fourier(prices, periods, method='difference'):
         results = pd.concat([results, df], axis=1)
 
     return results
+
+
+
+# Sine Series Coefficients Calculator
+def sine(prices, periods, method='difference'):
+    '''
+    :param prices: OHLC dataframe
+    :param periods: list of periods for which to compute coefficients (3,5,10 ...)
+    :param method: method by which to detrend the data
+
+    :return: datafames containing coefficients for said periods
+    '''
+
+    results = pd.DataFrame(index=prices.index)
+
+    # Compute the coefficients of the Series
+    detrended = detrend(prices, method)
+
+    for i in range(0, len(periods)):
+        coeffs = []
+
+        for j in range(periods[i], len(prices) - periods[i]):
+            x = np.arange(0, periods[i])
+            y = detrended.iloc[j - periods[i]:j]
+
+            with warnings.catch_warnings():
+                warnings.simplefilter('error', OptimizeWarning)
+
+                try:
+                    res = scipy.optimize.curve_fit(sseries, x, y)
+                except(RuntimeError, OptimizeWarning):
+                    res = np.empty((1, 3))
+                    res[0, :] = np.NAN
+
+            coeffs = np.append(coeffs, res[0], axis=0)
+
+        warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
+
+        coeffs = np.array(coeffs).reshape(((int(len(coeffs) / 3), 3)))
+
+        df = pd.DataFrame(coeffs, index=prices.index[periods[i]:-periods[i]])
+        # To edit if error remove outside brackets
+        df.columns = ['sine ' + str(periods[i]) + ' a0', 'sine ' + str(periods[i]) + ' b1', 'sine ' + str(periods[i]) + ' w']
+        df = df.fillna(method='bfill')
+        results = pd.concat([results, df], axis=1)
+
+    return results
+
+
+
