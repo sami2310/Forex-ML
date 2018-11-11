@@ -1,6 +1,12 @@
 import pandas as pd
 import numpy as np
 
+from scipy import stats
+import scipy.optimize
+from scipy.optimize import OptimizeWarning
+import warnings
+from sklearn.linear_model import LinearRegression
+
 
 def create_results(df , column, futur):
     """
@@ -119,5 +125,116 @@ def momentum(prices, periods):
         results['MomClose ' + str(periods[i])] = pd.DataFrame(
             prices.close.iloc[periods[i]:] - prices.close.iloc[:-periods[i]].values,
             index=prices.iloc[periods[i]:].index)
+
+    return results
+
+
+# Detrender
+def detrend(prices, method='difference'):
+    """
+    :param prices: dataframe of OHLC currency data
+    :param method: method by which to detrend 'linear' or 'difference'
+    
+    :return: the detrended price series
+    """
+
+    if method == 'difference':
+        detrended = prices.close[1:] - prices.close[:-1].values
+    elif method == 'linear':
+        x = np.arange(0, len(prices))
+        y = prices.close.values
+
+        model = LinearRegression()
+
+        model.fit(x.reshape(-1, 1), y.reshape(-1, 1))
+
+        trend = model.predict(x.reshape(-1, 1))
+        trend = trend.reshape((len(prices),))
+        detrended = prices.close - trend
+
+    else:
+        print('You did not input a valid method fot detrending')
+
+    return detrended
+
+
+# Fourier Series expansion fit function
+def fseries(x, a0, a1, b1, w):
+    '''
+
+    :param x: The hours (independent variable)
+    :param a0: First Fourier Series coefficient
+    :param a1: Second Fourier Series coefficient
+    :param b1: Third Fourier Series coefficient
+    :param w: Fourier Series Frequency
+    
+    :return: The Value of the Fourier function
+    '''
+
+    f = a0 + a1 * np.cos(w * x) + b1 * np.sin(w * x)
+    return f
+
+
+# Sine Series expansion fit function
+def sseries(x, a0, b1, w):
+    '''
+
+    :param x: The hours (independent variable)
+    :param a0: First Sine Series coefficient
+    :param a1: Second Sine Series coefficient
+    :param b1: Third Sine Series coefficient
+    :param w: Sine Series Frequency
+    
+    :return: The Value of the Sine function
+    '''
+
+    f = a0 + b1 * np.sin(w * x)
+    return f
+
+
+
+# Fourier Series Coefficients Calculator
+def fourier(prices, periods, method='difference'):
+    '''
+    :param prices: OHLC dataframe
+    :param periods: list of periods for which to compute coefficients (3,5,10 ...)
+    :param method: method by which to detrend the data
+    
+    :return: datafame containing coefficients for said periods
+    '''
+
+    results = pd.DataFrame(index=prices.index)
+
+    # Compute the coefficients of the Series
+    detrended = detrend(prices, method)
+
+    for i in range(len(periods)):
+        coeffs = []
+
+        for j in range(periods[i], len(prices) - periods[i]):
+            x = np.arange(0, periods[i])
+            y = detrended.iloc[j - periods[i]:j]
+
+            with warnings.catch_warnings():
+                warnings.simplefilter('error', OptimizeWarning)
+
+                try:
+                    res = scipy.optimize.curve_fit(fseries, x, y)
+                except(RuntimeError, OptimizeWarning):
+                    res = np.empty((1, 4))
+                    res[0, :] = np.NAN
+
+            coeffs = np.append(coeffs, res[0], axis=0)
+
+        warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
+
+        coeffs = np.array(coeffs).reshape(((int(len(coeffs) / 4), 4)))
+
+        df = pd.DataFrame(coeffs, index=prices.index[periods[i]:-periods[i]])
+
+        df.columns = ['fourier ' + str(periods[i]) + ' a0', 'fourier ' + str(periods[i]) + ' a1',
+                      'fourier ' + str(periods[i]) + ' b1', 'fourier ' + str(periods[i]) + ' w']
+        df = df.fillna(method='bfill')
+        results = pd.concat([results, df], axis=1)
 
     return results
