@@ -287,4 +287,37 @@ def sine(prices, periods, method='difference'):
     return results
 
 
+def wadl(prices, periods):
+    '''
+    :param prices::param prices: OHLC dataframe
+    :param periods: list of periods for which to compute the function
+    
+    :return: Williams accumulation Distribution lines for each period
+    '''
+    
+    results = pd.DataFrame(index=prices.index)
 
+    for i in range(0, len(periods)):
+        WAD = []
+
+        for j in range(periods[i], len(prices) - periods[i]):
+            TRH = np.array([prices.high.iloc[j], prices.close.iloc[j - 1]]).max()
+            TRL = np.array([prices.low.iloc[j], prices.close.iloc[j - 1]]).min()
+
+            if prices.close.iloc[j] > prices.close.iloc[j - 1]:
+                PM = prices.close.iloc[j] - TRL
+            elif prices.close.iloc[j] < prices.close.iloc[j - 1]:
+                PM = prices.close.iloc[j] - TRH
+            else:
+                PM = 0
+
+            AD = PM * prices.volume.iloc[j]
+            WAD = np.append(WAD, AD)
+
+        WAD = WAD.cumsum()
+        WAD = pd.DataFrame(WAD, index=prices.iloc[periods[i]:-periods[i]].index)
+        WAD.columns = ['WAD'+str(periods[i])+' close']
+
+        results = pd.concat([results, WAD], axis=1)
+
+    return results
