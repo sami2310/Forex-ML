@@ -357,3 +357,36 @@ def stochastic(prices, periods):
 
     return results
 
+
+# Williams oscillator function
+def williams(prices, periods):
+    """
+
+    :param prices: DataFrame of OHLC data
+    :param periods: List of periods to calculate function value
+    
+    :return: williams oscillator function values
+    """
+    results = pd.DataFrame(index=prices.index)
+
+    for i in range(len(periods)):
+        Rs = []
+
+        for j in range(periods[i], len(prices) - periods[i]):
+            C = prices.close.iloc[j + 1]
+            H = prices.high.iloc[j - periods[i]:j].max()
+            L = prices.low.iloc[j - periods[i]:j].min()
+
+            if H == L:
+                R = 0
+            else:
+                R = - 100 * (H - C) / (H - L)
+            Rs = np.append(Rs, R)
+
+        df = pd.DataFrame(Rs, index=prices.iloc[periods[i] + 1:-periods[i] + 1].index)
+        df.columns = ['williams ' + str(periods[i]) + ' R']
+        df = df.dropna()
+
+        results = pd.concat([results, df], axis=1)
+
+    return results
