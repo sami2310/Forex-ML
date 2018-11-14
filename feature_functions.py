@@ -321,3 +321,39 @@ def wadl(prices, periods):
         results = pd.concat([results, WAD], axis=1)
 
     return results
+
+
+# Stochastic oscillator function
+def stochastic(prices, periods):
+    """
+
+    :param prices: DataFrame of OHLC data
+    :param periods: List of periods to calculate function value
+    
+    :return: oscillator function values
+    """
+    results = pd.DataFrame(index=prices.index)
+
+    for i in range(0, len(periods)):
+        Ks = []
+
+        for j in range(periods[i], len(prices) - periods[i]):
+            C = prices.close.iloc[j + 1]
+            H = prices.high.iloc[j - periods[i]:j].max()
+            L = prices.low.iloc[j - periods[i]:j].min()
+
+            if H == L:
+                K = 0
+            else:
+                K = 100 * (C - L) / (H - L)
+            Ks = np.append(Ks, K)
+
+        df = pd.DataFrame(Ks, index=prices.iloc[periods[i] + 1:-periods[i] + 1].index)
+        df.columns = ['stochastics ' + str(periods[i]) + ' K']
+        df['stochastics ' + str(periods[i]) + ' D'] = df['stochastics ' + str(periods[i]) + ' K'].rolling(3).mean()
+        df = df.dropna()
+
+        results = pd.concat([results, df], axis=1)
+
+    return results
+
