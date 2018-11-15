@@ -390,3 +390,38 @@ def williams(prices, periods):
         results = pd.concat([results, df], axis=1)
 
     return results
+
+
+# Accumulation Distribution Oscillator
+
+def adosc(prices, periods):
+    """
+    :param prices: DataFrame of OHLC data
+    :param periods: List of periods to calculate function value
+    
+    :return: indicator values for indicated periods
+    """
+    results = pd.DataFrame(index=prices.index)
+
+    for i in range(len(periods)):
+        AD = []
+
+        for j in range(periods[i], len(prices) - periods[i]):
+            C = prices.close.iloc[j + 1]
+            H = prices.high.iloc[j - periods[i]:j].max()
+            L = prices.low.iloc[j - periods[i]:j].min()
+            V = prices.volume.iloc[j + 1]
+
+            if H == L:
+                CLV = 0
+            else:
+                CLV = - ((C - L) - (H - C)) / (H - L)
+            AD = np.append(AD, CLV * V)
+
+        AD = AD.cumsum()
+        AD = pd.DataFrame(AD, index=prices.iloc[periods[i] + 1:-periods[i] + 1].index)
+        AD.columns = ['AD ' + str(periods[i]) ]
+
+        results = pd.concat([results, AD], axis=1)
+    return results
+
