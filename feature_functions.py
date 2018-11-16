@@ -425,3 +425,28 @@ def adosc(prices, periods):
         results = pd.concat([results, AD], axis=1)
     return results
 
+
+# MACD function (Moving Average convergence Divergence)
+
+def macd(prices, periods):
+    """
+    :param prices: DataFrame of OHLC data
+    :param periods: 1x2 array containing values for EMAs
+    :return: MACD for indicated periods
+    """
+
+    results = pd.DataFrame(index=prices.index)
+
+    EMA1 = prices.close.ewm(span=periods[0]).mean()
+    EMA2 = prices.close.ewm(span=periods[1]).mean()
+
+    MACD = pd.DataFrame(EMA1 - EMA2)
+    MACD.columns = ['MACD L']
+
+    sigMACD = MACD.rolling(3).mean()
+    sigMACD.columns = ['MACD SL']
+
+    results = pd.concat([results, MACD], axis=1)
+    results = pd.concat([results, sigMACD], axis=1)
+
+    return results
