@@ -475,35 +475,3 @@ def cci(prices, periods):
         results = pd.concat([results, CCI[periods[i]]], axis=1)
 
     return results
-
-
-# Bollinger Bands
-
-def bollinger(prices, periods, deviations):
-    """
-
-    :param prices: OHLC data
-    :param periods: periods for which to compute the bollinger bands
-    :param deviations: deviations to use when calculating bands(upper and lower)
-    :return: bollinger bands
-    """
-
-    results = pd.DataFrame(index=prices.index)
-    boll = {}
-
-    for i in range(len(periods)):
-        mid = prices.close.rolling(periods[i]).mean()
-        std = prices.close.rolling(periods[i]).std()
-
-        upper = mid + deviations * std
-        lower = mid - deviations * std
-
-        df = pd.concat((upper, mid, lower), axis=1)
-        df.columns = ['upper bollinger' + str(periods[i]), 'mid bollinger' + str(periods[i]),
-                      'lower bollinger' + str(periods[i])]
-
-        results = pd.concat([results, df], axis=1)
-
-    return results
-
-
