@@ -475,3 +475,65 @@ def cci(prices, periods):
         results = pd.concat([results, CCI[periods[i]]], axis=1)
 
     return results
+
+
+# Bollinger Bands
+
+def bollinger(prices, periods, deviations):
+    """
+
+    :param prices: OHLC data
+    :param periods: periods for which to compute the bollinger bands
+    :param deviations: deviations to use when calculating bands(upper and lower)
+    :return: bollinger bands
+    """
+
+    results = pd.DataFrame(index=prices.index)
+    boll = {}
+
+    for i in range(len(periods)):
+        mid = prices.close.rolling(periods[i]).mean()
+        std = prices.close.rolling(periods[i]).std()
+
+        upper = mid + deviations * std
+        lower = mid - deviations * std
+
+        df = pd.concat((upper, mid, lower), axis=1)
+        df.columns = ['upper bollinger' + str(periods[i]), 'mid bollinger' + str(periods[i]),
+                      'lower bollinger' + str(periods[i])]
+
+        results = pd.concat([results, df], axis=1)
+
+    return results
+
+
+# Slope Function
+def slope(prices, periods):
+    """
+
+    :param prices: OHLC data
+    :param periods: periods for which to compute the function
+    
+    :return: Slopes over the given periods
+    """
+
+    results = pd.DataFrame(index=prices.index)
+
+    for i in range(len(periods)):
+        ms = []
+
+        for j in range(periods[i], len(prices) - periods[i]):
+            y = prices.high.iloc[j - periods[i]: j].values
+            x = np.arange(0, len(y))
+
+            res = stats.linregress(x, y=y)
+            m = res.slope
+            ms = np.append(ms, m)
+
+        ms = pd.DataFrame(ms, index=prices.iloc[periods[i]:-periods[i]].index)
+        ms.columns = ['slope high' + str(periods[i])]
+
+        results = pd.concat([results, ms], axis=1)
+
+
+    return results
